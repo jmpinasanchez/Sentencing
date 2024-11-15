@@ -28,7 +28,7 @@ drugs = drugs[which(as.character(drugs$OFFGUIDE)=="10"),]
 #Dropping variables not relevant
 vars = names(drugs) %in% c("MONSEX", "NEWRACE", "NEWEDUC", "AGE", "NEWCIT", "NEWCNVTN", 
                            "NOCOUNTS", "COMBDRG2", "CIRCDIST", "SUBASSIST", "XFOLSOR", 
-                           "XCRHISSR", "SENT0CAP") 
+                           "XCRHISSR", "SENT0CAP", "PRESENT") 
 drugs = drugs[vars]
 summary(drugs)
 lapply(drugs, function(x) prop.table(table(x, useNA = "ifany")))
@@ -68,7 +68,14 @@ drugs$COMBDRG2 = ifelse(drugs$COMBDRG2==1, "powder cocaine",
                 ifelse(drugs$COMBDRG2==7, "fentanyl", "other"))))))
 table(drugs$COMBDRG2, useNA = "ifany")
 
+#Recoding PRESENT
+table(drugs$PRESENT, useNA = "ifany")  
+drugs$detention = ifelse(drugs$PRESENT==1, 0,
+                ifelse(drugs$PRESENT==2|drugs$PRESENT==3, 1, NA))
+table(drugs$detention, useNA = "ifany")  
+drugs$PRESENT = NULL
 
+       
 
 ###########################################
 ###Descriptive stats#######################
@@ -128,14 +135,14 @@ cbind(summary(pool(model2_mi),conf.int = TRUE)[,1], exp(summary(pool(model2_mi),
 #Model including posttreatment case characteristics
 model3 = glm.nb(SENT0CAP ~ NEWRACE + MONSEX + AGE + NEWCIT + NEWEDUC + NEWCNVTN +
                            NOCOUNTS + COMBDRG2 + XCRHISSR + XFOLSOR + SUBASSIST + 
-                           CIRCDIST, data=drugs)
+                           CIRCDIST + detention, data=drugs)
 summary(model3)
 exp(model3$coefficients)
 vif(model3)
 #With imputed data
 model3_mi = with(data_mi, glm.nb(SENT0CAP ~ NEWRACE + MONSEX + NEWEDUC + AGE + 
                                    NEWCIT + NEWCNVTN + NOCOUNTS + COMBDRG2 + XCRHISSR + 
-                                   XFOLSOR + SUBASSIST + CIRCDIST, data = drugs))
+                                   XFOLSOR + SUBASSIST + CIRCDIST + detention, data = drugs))
 summary(pool(model3_mi),conf.int = TRUE)
 cbind(summary(pool(model3_mi),conf.int = TRUE)[,1], exp(summary(pool(model3_mi),conf.int = TRUE)[,c(2,7,8)]))
 
@@ -152,7 +159,7 @@ drugs$loglength = log(drugs$SENT0CAP + 1)
 #Running a linear model
 linear = lm(drugs$loglength ~ NEWRACE + MONSEX + AGE + NEWCIT + NEWEDUC + NEWCNVTN +
                   NOCOUNTS + COMBDRG2 + XCRHISSR + XFOLSOR + SUBASSIST + 
-                  CIRCDIST, data=drugs)
+                  CIRCDIST + detention, data=drugs)
 summary(linear)
 
 #The sensitivity analysis
@@ -170,7 +177,7 @@ library(ggplot2)
 library(ggpubr)
 
 #Subjectively defined factors##############
-subjective = c('XCRHISSR', 'XFOLSOR', 'SUBASSIST', 'CIRCDIST') 
+subjective = c('XCRHISSR', 'XFOLSOR', 'SUBASSIST', 'CIRCDIST', 'detention') 
 
 #Number of combinations####################
 # Number of items
